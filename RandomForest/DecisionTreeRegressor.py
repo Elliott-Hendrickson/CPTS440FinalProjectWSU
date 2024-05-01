@@ -10,8 +10,6 @@ class Node:
         self.varianceReduction = varianceReduction
         self.value=value
         
-    #def isLeafNode():
-        #return self.value is not None
     
 class DecisionTree:
     def __init__(self, minSamplesSplit=2, maxDepth=2):
@@ -22,20 +20,19 @@ class DecisionTree:
     def buildTree(self, df, currentDepth=0):
         bestSplitNode={}
         Xdata, ydata = df[:,:-1], df[:,-1]
-        #print(y.equals(ydata))
         numSamples, numFeatures = np.shape(Xdata)
-        #print(np.shape(Xdata))
+        #split condisions
         if numSamples >= self.minSamplesSplit and currentDepth <= self.maxDepth:
-            
+            #find best split
             bestSplitNode = self.getBestSplit(Xdata, ydata, df)
-            #print(bestSplitNode)
+            # create left and right nodes
             if bestSplitNode['varianceReduction'] > 0:
                 lSubTree = self.buildTree(bestSplitNode['dataLeft'], currentDepth + 1)
                 rSubTree = self.buildTree(bestSplitNode['dataRight'], currentDepth + 1)
                 return Node(bestSplitNode['featureIndex'], bestSplitNode['threshold'], lSubTree, rSubTree, bestSplitNode['varianceReduction'])
-            
+        
+        #value for leaf node (prediction) 
         value = np.mean(ydata)
-        #print(value)
         return Node(value=value)
             
     def getBestSplit(self, X,y, df):
@@ -47,24 +44,23 @@ class DecisionTree:
         minVariance = float('inf')
         leftList =[]
         rightList =[]
+        #iterates through features
         for i in range(numFeatures):
             values = X[:,i]
-            #print(values)
-            #print(df.keys())
             uniqueValues = np.unique(values)
-            #print(uniqueValues)
+            #iterates through all posible thresholds for that feature in the data set
             for threshold in uniqueValues:
                 queryFor = str(threshold)
-                #dataLeft = df.query(f'{df.keys()[i]} <= {threshold}')
+                #splits the data at threshold
                 dataLeft = df[df[:, i] <= threshold]
                 dataRight = df[df[:, i] > threshold]
-                #dataRight = df.query(f'{df.keys()[i]} > {threshold}')
-                #print(len(dataLeft))
+                
                 if len(dataLeft) >0 and len(dataRight) > 0:
                     leftY = dataLeft[:,-1]
                     rightY = dataRight[:,-1]
+                    #finds the variance of the threshold
                     currVariance = self.varianceReduction(y,leftY, rightY)
-                    #print(currVariance)
+                    #the node with the highest variance will be returned
                     if currVariance > maxVariance:
                         maxVariance = currVariance
                         bestSplitNode['featureIndex'] = i
@@ -82,18 +78,14 @@ class DecisionTree:
         return np.var(parent) - (weightL * np.var(lChild) + weightR * np.var(rChild))
     
     def fit(self, X, y):
-        #print(X)
+        #puts data back into a 2d array
         data = np.concatenate((X,y), axis=1)
-        Xdata, ydata = data[:,:-1], data[:,-1]
-        #print(Xdata)
-        #print(ydata)
-        #data = pd.DataFrame({'LotArea': data[:,0], 'OverallQual': data[:,1], 'OverallCond': data[:,2], 'YearBuilt': data[:,3], 
-          #                   'GrLivArea': data[:,4], 'TotRmsAbvGrd': data[:,5], 'YrSold': data[:,6],
-               #              'SalePrice': data[:,-1]})
-        
+        #sets root
         self.root = self.buildTree(data)
         
     def makePrediction(self, x, tree):
+        #traverses through tree based on the values of the features in x
+        
         if tree.value!=None: return tree.value
         featureValue = x[tree.featureIndex]
         if featureValue <= tree.threshold:
@@ -107,7 +99,6 @@ class DecisionTree:
         return prediction
     
     def print_tree(self, tree=None, indent=" "):
-        ''' function to print the tree '''
         
         if not tree:
             tree = self.root
